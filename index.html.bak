@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Minimal DTR for OJT Hours</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <link rel="icon" type="image/png" href="time icon.png">
+    <style>
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: #ffffff;
+            color: #000000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 40px 0;
+        }
+
+        .container {
+            width: 600px;
+            border: 4px solid #000;
+            padding: 3.5rem;
+            box-shadow: 20px 20px 0px #000;
+            background: white;
+        }
+
+        h2 {
+            font-size: 2.5rem;
+            text-transform: uppercase;
+            letter-spacing: 4px;
+            border-bottom: 4px solid #000;
+            padding-bottom: 15px;
+            margin-bottom: 40px;
+            margin-top: 0;
+        }
+
+        .section-title {
+            font-weight: 900;
+            font-size: 1.2rem;
+            text-transform: uppercase;
+            margin: 30px 0 15px 0;
+            display: block;
+        }
+
+        .input-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 20px;
+        }
+
+        input {
+            border: 3px solid #000;
+            padding: 15px;
+            font-size: 1.5rem;
+            font-family: 'Courier New', monospace;
+            outline: none;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        input:focus {
+            background-color: #000;
+            color: #fff;
+        }
+
+        .label {
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+
+        .total-display {
+            margin-top: 50px;
+            border-top: 4px solid #000;
+            padding-top: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+        }
+        
+        .total-label {
+            font-size: 2rem;
+            font-weight: 900;
+        }
+
+        #total-hours {
+            font-size: 4.5rem;
+            font-weight: 900;
+        }
+
+        .actions {
+            margin-top: 40px;
+            display: flex;
+            gap: 20px;
+        }
+
+        button {
+            flex: 1;
+            background: #000;
+            color: #fff;
+            border: none;
+            padding: 20px;
+            font-weight: bold;
+            text-transform: uppercase;
+            cursor: pointer;
+            letter-spacing: 2px;
+            transition: 0.2s;
+        }
+
+        button:hover {
+            background: #333;
+            transform: translate(-2px, -2px);
+            box-shadow: 4px 4px 0 #888;
+        }
+
+        /* Preview Modal */
+        #preview-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+
+        #pdf-render {
+            width: 80%;
+            height: 70%;
+            background: white;
+            border: 5px solid white;
+        }
+
+        .modal-btns {
+            margin-top: 20px;
+            display: flex;
+            gap: 20px;
+            width: 80%;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <h2>DAILY LOG</h2>
+
+        <span class="section-title">Morning</span>
+        <div class="input-group">
+            <div>
+                <div class="label">In</div><input type="time" id="m-in" onchange="calculate()">
+            </div>
+            <div>
+                <div class="label">Out</div><input type="time" id="m-out" onchange="calculate()">
+            </div>
+        </div>
+
+        <span class="section-title">Afternoon</span>
+        <div class="input-group">
+            <div>
+                <div class="label">In</div><input type="time" id="a-in" onchange="calculate()">
+            </div>
+            <div>
+                <div class="label">Out</div><input type="time" id="a-out" onchange="calculate()">
+            </div>
+        </div>
+
+        <div class="total-display">
+            <div class="total-label">Total Hours</div>
+            <div style="text-align: right;">
+                <div id="total-hours">0.00</div>
+                <div id="hour-min-display"
+                    style="font-family: monospace; font-size: 1.2rem; font-weight: bold; margin-top: -10px;">
+                    0h 0m
+                </div>
+            </div>
+        </div>
+
+        <div class="actions">
+            <button onclick="showPreview()">Preview Summary</button>
+        </div>
+    </div>
+
+    <div id="preview-modal">
+        <iframe id="pdf-render"></iframe>
+        <div class="modal-btns">
+            <button style="background: white; color: black;" onclick="closePreview()">Back to Edit</button>
+            <button onclick="downloadPDF()">Download PDF</button>
+        </div>
+    </div>
+
+    <script>
+        const { jsPDF } = window.jspdf;
+        let currentDoc = null;
+
+        function calculate() {
+            const mIn = document.getElementById('m-in').value;
+            const mOut = document.getElementById('m-out').value;
+            const aIn = document.getElementById('a-in').value;
+            const aOut = document.getElementById('a-out').value;
+
+            let totalMinutes = 0;
+
+            if (mIn && mOut) {
+                totalMinutes += getDiff(mIn, mOut);
+            }
+            if (aIn && aOut) {
+                totalMinutes += getDiff(aIn, aOut);
+            }
+
+            // 1. Calculate Decimal Hours
+            const decimalHours = totalMinutes / 60;
+            document.getElementById('total-hours').innerText = decimalHours.toFixed(2);
+
+            // 2. Calculate Hours and Minutes display
+            const h = Math.floor(totalMinutes / 60);
+            const m = Math.round(totalMinutes % 60);
+            document.getElementById('hour-min-display').innerText = `${h}h ${m}m`;
+        }
+
+        function getDiff(start, end) {
+            const s = start.split(':'), e = end.split(':');
+            const diff = new Date(0, 0, 0, e[0], e[1]) - new Date(0, 0, 0, s[0], s[1]);
+            return diff > 0 ? diff / 1000 / 60 : 0;
+        }
+
+        function generatePDF() {
+            const doc = new jsPDF();
+            const date = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+            const total = document.getElementById('total-hours').innerText;
+
+            // Design the PDF
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(22);
+            doc.text("DAILY TIME RECORD", 20, 30);
+
+            doc.setFontSize(12);
+            doc.setFont("helvetica", "normal");
+            doc.text(`Date: ${date}`, 20, 40);
+            doc.line(20, 45, 190, 45); // Border
+
+            doc.setFont("helvetica", "bold");
+            doc.text("SESSION", 20, 60);
+            doc.text("TIME IN", 70, 60);
+            doc.text("TIME OUT", 120, 60);
+
+            doc.setFont("helvetica", "normal");
+            doc.text("Morning:", 20, 75);
+            doc.text(document.getElementById('m-in').value || "--:--", 70, 75);
+            doc.text(document.getElementById('m-out').value || "--:--", 120, 75);
+
+            doc.text("Afternoon:", 20, 85);
+            doc.text(document.getElementById('a-in').value || "--:--", 70, 85);
+            doc.text(document.getElementById('a-out').value || "--:--", 120, 85);
+
+            doc.line(20, 95, 190, 95);
+            doc.setFontSize(16);
+            doc.setFont("helvetica", "bold");
+            doc.text(`TOTAL HOURS: ${total}`, 20, 110);
+
+            return doc;
+        }
+
+        function showPreview() {
+            currentDoc = generatePDF();
+            const blob = currentDoc.output('bloburl');
+            document.getElementById('pdf-render').src = blob;
+            document.getElementById('preview-modal').style.display = 'flex';
+        }
+
+        function closePreview() {
+            document.getElementById('preview-modal').style.display = 'none';
+        }
+
+        function downloadPDF() {
+            if (currentDoc) {
+                currentDoc.save(`DTR_${new Date().toLocaleDateString()}.pdf`);
+            }
+        }
+    </script>
+
+</body>
+
+</html>
