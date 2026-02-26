@@ -1,14 +1,30 @@
 <script setup>
+import { ref } from 'vue'
+import ConfirmModal from './ConfirmModal.vue'
+
 defineProps({
   records: { type: Array, required: true },
 })
 
 const emit = defineEmits(['edit', 'delete'])
 
-function confirmDelete(id) {
-  if (confirm('Are you sure you want to delete this record?')) {
-    emit('delete', id)
-  }
+const showConfirm  = ref(false)
+const pendingId    = ref(null)
+
+function requestDelete(id) {
+  pendingId.value   = id
+  showConfirm.value = true
+}
+
+function onConfirm() {
+  emit('delete', pendingId.value)
+  showConfirm.value = false
+  pendingId.value   = null
+}
+
+function onCancel() {
+  showConfirm.value = false
+  pendingId.value   = null
 }
 
 function formatDate(dateStr) {
@@ -50,11 +66,18 @@ function formatDate(dateStr) {
           <td>{{ record.afternoonOut || '—' }}</td>
           <td class="record-total">{{ (record.totalMinutes / 60).toFixed(2) }}</td>
           <td class="record-actions">
-            <button class="btn-edit"   @click="emit('edit',   record)">Edit</button>
-            <button class="btn-delete" @click="confirmDelete(record.id)">Del</button>
+            <button class="btn-edit"   @click="emit('edit', record)">Edit</button>
+            <button class="btn-delete" @click="requestDelete(record.id)">Del</button>
           </td>
         </tr>
       </tbody>
     </table>
   </div>
+
+  <ConfirmModal
+    :visible="showConfirm"
+    message="Are you sure you want to delete this record?"
+    @confirm="onConfirm"
+    @cancel="onCancel"
+  />
 </template>
