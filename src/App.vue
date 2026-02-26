@@ -7,6 +7,7 @@ import ProgressBar from './components/ProgressBar.vue'
 import RecordsList from './components/RecordsList.vue'
 import { usePDF } from './composables/usePDF.js'
 import { useRecords } from './composables/useRecords.js'
+import AlertModal from './components/AlertModal.vue'
 
 // --- Records state ---
 const {
@@ -29,6 +30,15 @@ const morningOut    = ref('')
 const afternoonIn   = ref('')
 const afternoonOut  = ref('')
 const editingId     = ref(null)
+
+// --- Alert state ---
+const showAlert    = ref(false)
+const alertMessage = ref('')
+
+function triggerAlert(msg) {
+  alertMessage.value = msg
+  showAlert.value    = true
+}
 
 // --- PDF state ---
 const showModal = ref(false)
@@ -66,7 +76,13 @@ const isEditing = computed(() => editingId.value !== null)
 // --- Form actions ---
 function saveRecord() {
   if (!selectedDate.value) {
-    alert('Please select a date before saving.')
+    triggerAlert('Please select a date before saving.')
+    return
+  }
+
+  const hasAnyTime = morningIn.value || morningOut.value || afternoonIn.value || afternoonOut.value
+  if (!hasAnyTime) {
+    triggerAlert('Please enter at least one time in or out before saving.')
     return
   }
 
@@ -191,5 +207,11 @@ function showPreview() {
     :pdfUrl="pdfUrl"
     @close="showModal = false"
     @download="downloadPDF"
+  />
+
+  <AlertModal
+    :visible="showAlert"
+    :message="alertMessage"
+    @close="showAlert = false"
   />
 </template>
