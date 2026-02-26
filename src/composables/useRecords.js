@@ -1,124 +1,35 @@
-import { ref, computed } from 'vue'
-import { supabase } from '../lib/supabase.js'
+import { ref, computed, watch } from 'vue'
 
 const TARGET_HOURS = 486
 const START_DATE   = '2026-02-06'
+const STORAGE_KEY  = 'dtr-records'
 
-// DB row (snake_case) → JS object (camelCase)
-function toJS(row) {
-  return {
-    id:           row.id,
-    date:         row.date,
-    morningIn:    row.morning_in,
-    morningOut:   row.morning_out,
-    afternoonIn:  row.afternoon_in,
-    afternoonOut: row.afternoon_out,
-    totalMinutes: row.total_minutes,
-  }
-}
-
-// JS object (camelCase) → DB row (snake_case)
-function toDB(entry) {
-  return {
-    date:          entry.date,
-    morning_in:    entry.morningIn,
-    morning_out:   entry.morningOut,
-    afternoon_in:  entry.afternoonIn,
-    afternoon_out: entry.afternoonOut,
-    total_minutes: entry.totalMinutes,
+function loadFromStorage() {
+  try {
+    return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]')
+  } catch {
+    return []
   }
 }
 
 export function useRecords() {
-  const records = ref([])
-  const loading = ref(false)
-  const error   = ref(null)
+  const records = ref(loadFromStorage())
 
-  // ── LOAD ────────────────────────────────────────────────────────────────
-  async function loadRecords() {
-    loading.value = true
-    error.value   = null
-    try {
-      const { data, error: sbError } = await supabase
-        .from('records')
-        .select('*')
-        .order('date', { ascending: false })
+  watch(records, (val) => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(val))
+  }, { deep: true })
 
-      if (sbError) throw sbError
-      records.value = data.map(toJS)
-    } catch (err) {
-      error.value   = err.message
-      records.value = []
-    } finally {
-      loading.value = false
-    }
+  function addRecord(entry) {
+    records.value.push({ id: crypto.randomUUID(), ...entry })
   }
 
-  loadRecords()
-
-  // ── ADD ─────────────────────────────────────────────────────────────────
-  async function addRecord(entry) {
-    loading.value = true
-    error.value   = null
-    try {
-      const { data, error: sbError } = await supabase
-        .from('records')
-        .insert({ id: crypto.randomUUID(), ...toDB(entry) })
-        .select()
-        .single()
-
-      if (sbError) throw sbError
-      records.value.push(toJS(data))
-      return toJS(data)
-    } catch (err) {
-      error.value = err.message
-      throw err
-    } finally {
-      loading.value = false
-    }
+  function updateRecord(id, patch) {
+    const index = records.value.findIndex(r => r.id === id)
+    if (index !== -1) records.value[index] = { id, ...patch }
   }
 
-  // ── UPDATE ───────────────────────────────────────────────────────────────
-  async function updateRecord(id, patch) {
-    loading.value = true
-    error.value   = null
-    try {
-      const { data, error: sbError } = await supabase
-        .from('records')
-        .update(toDB(patch))
-        .eq('id', id)
-        .select()
-        .single()
-
-      if (sbError) throw sbError
-      const index = records.value.findIndex(r => r.id === id)
-      if (index !== -1) records.value[index] = toJS(data)
-    } catch (err) {
-      error.value = err.message
-      throw err
-    } finally {
-      loading.value = false
-    }
-  }
-
-  // ── DELETE ───────────────────────────────────────────────────────────────
-  async function deleteRecord(id) {
-    loading.value = true
-    error.value   = null
-    try {
-      const { error: sbError } = await supabase
-        .from('records')
-        .delete()
-        .eq('id', id)
-
-      if (sbError) throw sbError
-      records.value = records.value.filter(r => r.id !== id)
-    } catch (err) {
-      error.value = err.message
-      throw err
-    } finally {
-      loading.value = false
-    }
+  function deleteRecord(id) {
+    records.value = records.value.filter(r => r.id !== id)
   }
 
   // ── COMPUTED ─────────────────────────────────────────────────────────────
@@ -157,12 +68,9 @@ export function useRecords() {
   return {
     records,
     sortedRecords,
-    loading,
-    error,
     addRecord,
     updateRecord,
     deleteRecord,
-    loadRecords,
     totalAccumulatedMinutes,
     totalAccumulatedHours,
     progressPercent,

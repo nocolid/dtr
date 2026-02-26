@@ -14,8 +14,6 @@ const {
   addRecord,
   updateRecord,
   deleteRecord,
-  loading,
-  error,
   totalAccumulatedHours,
   progressPercent,
   remainingHours,
@@ -66,7 +64,7 @@ const hoursMinutes = computed(() => {
 const isEditing = computed(() => editingId.value !== null)
 
 // --- Form actions ---
-async function saveRecord() {
+function saveRecord() {
   if (!selectedDate.value) {
     alert('Please select a date before saving.')
     return
@@ -81,16 +79,12 @@ async function saveRecord() {
     totalMinutes: totalMinutes.value,
   }
 
-  try {
-    if (isEditing.value) {
-      await updateRecord(editingId.value, entry)
-    } else {
-      await addRecord(entry)
-    }
-    resetForm()
-  } catch (err) {
-    alert(`Failed to save record: ${err.message}`)
+  if (isEditing.value) {
+    updateRecord(editingId.value, entry)
+  } else {
+    addRecord(entry)
   }
+  resetForm()
 }
 
 function startEdit(record) {
@@ -116,12 +110,8 @@ function resetForm() {
   afternoonOut.value = ''
 }
 
-async function handleDelete(id) {
-  try {
-    await deleteRecord(id)
-  } catch (err) {
-    alert(`Failed to delete record: ${err.message}`)
-  }
+function handleDelete(id) {
+  deleteRecord(id)
 }
 
 // --- PDF ---
@@ -143,9 +133,6 @@ function showPreview() {
 </script>
 
 <template>
-  <div v-if="loading" class="loading-banner">Saving...</div>
-  <div v-if="error"   class="error-banner">{{ error }}</div>
-
   <ProgressBar
     :percent="progressPercent"
     :accumulated="totalAccumulatedHours"
@@ -183,8 +170,8 @@ function showPreview() {
     />
 
     <div class="actions">
-      <button @click="saveRecord" :disabled="loading">
-        {{ loading ? 'Saving...' : (isEditing ? 'Update Record' : 'Save Record') }}
+      <button @click="saveRecord">
+        {{ isEditing ? 'Update Record' : 'Save Record' }}
       </button>
       <button v-if="isEditing" class="btn-cancel" @click="cancelEdit">
         Cancel
