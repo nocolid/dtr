@@ -158,49 +158,51 @@ function showPreview() {
     :estimatedEndDate="estimatedEndDate"
   />
 
-  <div class="container">
-    <h2>{{ isEditing ? 'Edit Record' : 'Daily Log' }}</h2>
+  <div class="app-layout">
+    <div class="container">
+      <h2>{{ isEditing ? 'Edit Record' : 'Daily Log' }}</h2>
 
-    <div class="field-group">
-      <div class="label">Date</div>
-      <input type="date" v-model="selectedDate" />
+      <div class="field-group">
+        <div class="label">Date</div>
+        <input type="date" v-model="selectedDate" />
+      </div>
+
+      <TimeInputGroup
+        label="Morning"
+        :value="{ timeIn: morningIn, timeOut: morningOut }"
+        @update:timeIn="morningIn = $event"
+        @update:timeOut="morningOut = $event"
+      />
+
+      <TimeInputGroup
+        label="Afternoon"
+        :value="{ timeIn: afternoonIn, timeOut: afternoonOut }"
+        @update:timeIn="afternoonIn = $event"
+        @update:timeOut="afternoonOut = $event"
+      />
+
+      <TotalDisplay
+        :decimalHours="decimalHours"
+        :hoursMinutes="hoursMinutes"
+      />
+
+      <div class="actions">
+        <button @click="saveRecord">
+          {{ isEditing ? 'Update Record' : 'Save Record' }}
+        </button>
+        <button v-if="isEditing" class="btn-cancel" @click="cancelEdit">
+          Cancel
+        </button>
+        <button @click="showPreview">Preview PDF</button>
+      </div>
     </div>
 
-    <TimeInputGroup
-      label="Morning"
-      :value="{ timeIn: morningIn, timeOut: morningOut }"
-      @update:timeIn="morningIn = $event"
-      @update:timeOut="morningOut = $event"
+    <RecordsList
+      :records="sortedRecords"
+      @edit="startEdit"
+      @delete="handleDelete"
     />
-
-    <TimeInputGroup
-      label="Afternoon"
-      :value="{ timeIn: afternoonIn, timeOut: afternoonOut }"
-      @update:timeIn="afternoonIn = $event"
-      @update:timeOut="afternoonOut = $event"
-    />
-
-    <TotalDisplay
-      :decimalHours="decimalHours"
-      :hoursMinutes="hoursMinutes"
-    />
-
-    <div class="actions">
-      <button @click="saveRecord">
-        {{ isEditing ? 'Update Record' : 'Save Record' }}
-      </button>
-      <button v-if="isEditing" class="btn-cancel" @click="cancelEdit">
-        Cancel
-      </button>
-      <button @click="showPreview">Preview PDF</button>
-    </div>
   </div>
-
-  <RecordsList
-    :records="sortedRecords"
-    @edit="startEdit"
-    @delete="handleDelete"
-  />
 
   <PreviewModal
     :visible="showModal"
