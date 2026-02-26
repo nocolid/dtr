@@ -5,6 +5,12 @@ defineProps({
 
 const emit = defineEmits(['edit', 'delete'])
 
+function confirmDelete(id) {
+  if (confirm('Are you sure you want to delete this record?')) {
+    emit('delete', id)
+  }
+}
+
 function formatDate(dateStr) {
   const [y, m, d] = dateStr.split('-')
   return new Date(+y, +m - 1, +d).toLocaleDateString('en-US', {
@@ -45,7 +51,7 @@ function formatDate(dateStr) {
           <td class="record-total">{{ (record.totalMinutes / 60).toFixed(2) }}</td>
           <td class="record-actions">
             <button class="btn-edit"   @click="emit('edit',   record)">Edit</button>
-            <button class="btn-delete" @click="emit('delete', record.id)">Del</button>
+            <button class="btn-delete" @click="confirmDelete(record.id)">Del</button>
           </td>
         </tr>
       </tbody>
