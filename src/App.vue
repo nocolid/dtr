@@ -5,7 +5,6 @@ import TotalDisplay from './components/TotalDisplay.vue'
 import PreviewModal from './components/PreviewModal.vue'
 import ProgressBar from './components/ProgressBar.vue'
 import RecordsList from './components/RecordsList.vue'
-//import DotHead from './components/DotHead.vue'
 import { usePDF } from './composables/usePDF.js'
 import { useRecords } from './composables/useRecords.js'
 
@@ -15,6 +14,8 @@ const {
   addRecord,
   updateRecord,
   deleteRecord,
+  loading,
+  error,
   totalAccumulatedHours,
   progressPercent,
   remainingHours,
@@ -65,7 +66,7 @@ const hoursMinutes = computed(() => {
 const isEditing = computed(() => editingId.value !== null)
 
 // --- Form actions ---
-function saveRecord() {
+async function saveRecord() {
   if (!selectedDate.value) {
     alert('Please select a date before saving.')
     return
@@ -80,13 +81,16 @@ function saveRecord() {
     totalMinutes: totalMinutes.value,
   }
 
-  if (isEditing.value) {
-    updateRecord(editingId.value, entry)
-  } else {
-    addRecord(entry)
+  try {
+    if (isEditing.value) {
+      await updateRecord(editingId.value, entry)
+    } else {
+      await addRecord(entry)
+    }
+    resetForm()
+  } catch (err) {
+    alert(`Failed to save record: ${err.message}`)
   }
-
-  resetForm()
 }
 
 function startEdit(record) {
@@ -112,6 +116,14 @@ function resetForm() {
   afternoonOut.value = ''
 }
 
+async function handleDelete(id) {
+  try {
+    await deleteRecord(id)
+  } catch (err) {
+    alert(`Failed to delete record: ${err.message}`)
+  }
+}
+
 // --- PDF ---
 function showPreview() {
   pdfUrl.value = getPreviewURL(
@@ -131,6 +143,9 @@ function showPreview() {
 </script>
 
 <template>
+  <div v-if="loading" class="loading-banner">Saving...</div>
+  <div v-if="error"   class="error-banner">{{ error }}</div>
+
   <ProgressBar
     :percent="progressPercent"
     :accumulated="totalAccumulatedHours"
@@ -168,8 +183,8 @@ function showPreview() {
     />
 
     <div class="actions">
-      <button @click="saveRecord">
-        {{ isEditing ? 'Update Record' : 'Save Record' }}
+      <button @click="saveRecord" :disabled="loading">
+        {{ loading ? 'Saving...' : (isEditing ? 'Update Record' : 'Save Record') }}
       </button>
       <button v-if="isEditing" class="btn-cancel" @click="cancelEdit">
         Cancel
@@ -181,7 +196,7 @@ function showPreview() {
   <RecordsList
     :records="sortedRecords"
     @edit="startEdit"
-    @delete="deleteRecord"
+    @delete="handleDelete"
   />
 
   <PreviewModal
@@ -190,6 +205,4 @@ function showPreview() {
     @close="showModal = false"
     @download="downloadPDF"
   />
-
-  <!--<DotHead />-->
 </template>
