@@ -5,6 +5,7 @@ import TotalDisplay from './components/TotalDisplay.vue'
 import PreviewModal from './components/PreviewModal.vue'
 import ProgressBar from './components/ProgressBar.vue'
 import RecordsList from './components/RecordsList.vue'
+import DotHead from './components/DotHead.vue'
 import { usePDF } from './composables/usePDF.js'
 import { useRecords } from './composables/useRecords.js'
 
@@ -189,4 +190,6 @@ function showPreview() {
     @close="showModal = false"
     @download="downloadPDF"
   />
+
+  <DotHead />
 </template>
