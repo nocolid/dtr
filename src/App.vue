@@ -149,6 +149,7 @@ function showPreview() {
 </script>
 
 <template>
+  <div class="page-content">
   <ProgressBar
     :percent="progressPercent"
     :accumulated="totalAccumulatedHours"
@@ -202,6 +203,7 @@ function showPreview() {
       @edit="startEdit"
       @delete="handleDelete"
     />
+  </div>
   </div>
 
   <PreviewModal
