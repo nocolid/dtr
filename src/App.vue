@@ -120,7 +120,10 @@ function showPreview() {
       afternoonIn:  afternoonIn.value,
       afternoonOut: afternoonOut.value,
     },
-    decimalHours.value
+    decimalHours.value,
+    sortedRecords.value,
+    totalAccumulatedHours.value,
+    progressPercent.value
   )
   showModal.value = true
 }
