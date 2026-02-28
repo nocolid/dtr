@@ -1,4 +1,5 @@
 import { ref, computed, watch } from 'vue'
+import HOLIDAYS from '../lib/holidays.js'
 
 const TARGET_HOURS = 486
 const START_DATE   = '2026-02-06'
@@ -10,6 +11,25 @@ function loadFromStorage() {
   } catch {
     return []
   }
+}
+
+// Returns true if the given Date falls on a weekend or a Philippine holiday.
+function isNonWorkingDay(date) {
+  const day = date.getDay()
+  if (day === 0 || day === 6) return true // Sunday or Saturday
+  const dateStr = date.toISOString().split('T')[0]
+  return HOLIDAYS.has(dateStr)
+}
+
+// Advance startDate by exactly `workingDays` working days, skipping weekends + holidays.
+function addWorkingDays(startDate, workingDays) {
+  const date = new Date(startDate)
+  let added = 0
+  while (added < workingDays) {
+    date.setDate(date.getDate() + 1)
+    if (!isNonWorkingDay(date)) added++
+  }
+  return date
 }
 
 export function useRecords() {
@@ -59,9 +79,8 @@ export function useRecords() {
     const avgMinutesPerDay = totalAccumulatedMinutes.value / records.value.length
     if (avgMinutesPerDay === 0) return null
     const remainingMinutes = Math.max(TARGET_HOURS * 60 - totalAccumulatedMinutes.value, 0)
-    const daysNeeded = Math.ceil(remainingMinutes / avgMinutesPerDay)
-    const end = new Date()
-    end.setDate(end.getDate() + daysNeeded)
+    const workingDaysNeeded = Math.ceil(remainingMinutes / avgMinutesPerDay)
+    const end = addWorkingDays(new Date(), workingDaysNeeded)
     return end.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
   })
 
