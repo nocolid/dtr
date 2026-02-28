@@ -29,7 +29,7 @@ const HOLIDAYS = new Set([
 
   // Special Non-Working Days
   '2026-01-02', // Special non-working day (post-New Year bridge)
-  '2026-02-25', // EDSA People Power Revolution Anniversary
+  //'2026-02-25', // EDSA People Power Revolution Anniversary
   '2026-08-21', // Ninoy Aquino Day
   '2026-11-01', // All Saints' Day
   '2026-11-02', // All Souls' Day
